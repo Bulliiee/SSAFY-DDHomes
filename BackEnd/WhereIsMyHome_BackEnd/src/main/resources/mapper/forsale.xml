@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+<mapper namespace="com.ssafy.apt.model.mapper.ForsaleMapper">
+
+	<resultMap type="forsaleDto" id="forsale">
+		<result column="forsaleNo" property="forsaleNo"/>
+		<result column="aptCode" property="aptCode"/>
+		<result column="dongCode" property="dongCode"/>
+		<result column="apartmentName" property="apartmentName"/>
+		<result column="sidoName" property="sidoName"/>
+		<result column="gugunName" property="gugunName"/>
+		<result column="dong" property="dong"/>
+		<result column="jibun" property="jibun"/>
+		<result column="roadName" property="roadName"/>
+		<result column="roadNameBonBun" property="roadNameBonBun"/>
+		<result column="userId" property="userId"/>
+		<result column="price" property="price"/>
+		<result column="buildYear" property="buildYear"/>
+		<result column="lat" property="lat"/>
+		<result column="lng" property="lng"/>
+	</resultMap>
+	
+	<resultMap type="houseInfoDto" id="houseInfo">
+		<result column="aptCode" property="aptCode" />
+		<result column="sigunguCode" property="sigunguCode" />
+		<result column="eubmyundongCode" property="eubmyundongCode" />
+		<result column="dongCode" property="dongCode" />
+		<result column="sidoName" property="sidoName" />
+		<result column="gugunName" property="gugunName" />
+		<result column="dong" property="dong" />
+		<result column="jibun" property="jibun" />
+		<result column="roadName" property="roadName" />
+		<result column="roadNameBonBun" property="roadNameBonBun" />
+		<result column="apartmentName" property="apartmentName" />
+		<result column="buildYear" property="buildYear" />
+		<result column="lat" property="lat" />
+		<result column="lng" property="lng" />
+	</resultMap>
+	
+	<!-- 매물 등록 -->
+	<insert id="registForsale" parameterType="forsaleDto">
+		insert into forsale(aptCode, userId, price)
+		values(#{aptCode}, #{userId}, #{price})
+		<selectKey resultType="int" keyProperty="forsaleNo" order="AFTER">
+			select last_insert_id()
+		</selectKey>
+	</insert>
+	
+	<!-- 등록된 매물 리스트 조회 -->
+	<select id="forsaleList" parameterType="map" resultMap="forsale">
+		select f.forsaleNo, i.aptCode, d.dongCode, i.apartmentName, d.sidoName, d.gugunName, i.dong, i.jibun, i.roadName, i.roadNameBonbun, f.userId, f.price, i.buildYear, i.lat, i.lng
+		from forsale f join houseinfo i
+		on f.aptCode = i.aptCode
+		join dongcode d
+		on i.dongCode = d.dongCode
+		<choose>
+			<when test="condition == 'dongCode'">
+				where i.dongCode = #{value}
+			</when>
+			<when test="condition == 'enter'">
+				where f.userId = #{value}
+			</when>
+			<when test="condition == 'favorite'">
+				where f.forsaleNo in (	select forsaleNo
+										from favorite
+										where userId = #{value} )
+			</when>
+			<when test="condition == 'dong'">
+				where i.dong like concat('%', #{value}, '%')
+			</when>
+		</choose>
+		order by f.forsaleNo desc
+	</select>
+	
+	<!-- 아파트 동, 이름으로 아파트 정보 검색 -->
+	<select id="searchHouseInfo" parameterType="map" resultMap="houseInfo">
+		select i.aptCode, i.sigunguCode, i.eubmyundongCode, i.dongCode, d.sidoName, d.gugunName, i.dong, i.jibun, i.roadName, i.roadNameBonbun, i.apartmentname, i.buildYear, i.lat, i.lng
+		from houseinfo i join dongcode d
+		on i.dongCode = d.dongCode
+		where i.dong like concat('%', #{dongName}, '%') and
+		i.apartmentName like concat('%', #{apartmentName}, '%')
+	</select>
+	
+	<!-- 아파트 번호로 최근 2년간 거래 가격 평균 검색 -->
+	<!-- 결과값이 null인경우 처리 위해 resultType을 int가 아닌 Integer -->
+	<select id="getAvgDealAmount" parameterType="string" resultType="Integer">
+		select floor(avg(dealAmount) * 1000) as avgDealAmount
+		from housedeal
+		where aptCode = #{aptCode} and dealYear in (date_format(now(), '%Y')-1, date_format(now(), '%Y')-2)
+	</select>
+	
+	<!-- 매매가 수정 -->
+	<update id="modifyPrice" parameterType="map">
+		update forsale
+		set price = #{price}
+		where forsaleNo = #{forsaleNo}
+	</update>
+	
+	<!-- 매물 삭제 -->
+	<delete id="deleteForsale" parameterType="int">
+		delete from forsale
+		where forsaleNo = #{forsaleNo}
+	</delete>
+	
+	<!-- 이미 찜이 되어있는지 확인 -->
+	<select id="checkFavorite" parameterType="string" resultType="int">
+		select forsaleNo
+		from favorite
+		where userId = #{userId}
+	</select>
+	
+	<!-- 매물 찜 등록 -->
+	<insert id="favorite" parameterType="map">
+		insert into favorite(userId, forsaleNo)
+		values(#{userId}, #{forsaleNo})
+	</insert>
+	
+	<!-- 찜 삭제 -->
+	<delete id="deleteFavorite" parameterType="map">
+		delete from favorite
+		where userId = #{userId} and forsaleNo = #{forsaleNo}
+	</delete>
+	
+	<!-- 최근 2년간 xx동의 평균 거래 가격 -->
+	<select id="getAvgPrice" parameterType="string" resultType="Integer">
+		select floor(avg(d.dealAmount * 1000)) as avg
+		from houseinfo i join housedeal d
+		on i.aptCode = d.aptCode
+		where i.dongCode = #{dongCode} and d.dealYear in (date_format(now(), '%Y')-1, date_format(now(), '%Y')-2);
+	</select>
+	
+</mapper>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.home.file.model.mapper.FileMapper">
+
+	<resultMap type="imgInfoDto" id="img">
+		<result column="imgInfoNo" property="imgInfoNo" />	
+		<result column="forsaleNo" property="forsaleNo" />	
+		<result column="articleNo" property="articleNo" />	
+		<result column="saveFolder" property="saveFolder" />	
+		<result column="originalName" property="originalName" />	
+		<result column="saveName" property="saveName" />	
+	</resultMap>
+
+	<!-- 게시판 이미지 등록 -->
+	<insert id="uploadBoardImg" parameterType="java.util.List">
+		insert into imginfo (articleNo, saveFolder, originalName, saveName)
+		values
+		<foreach collection="imgInfos" item="imgInfo" separator=", ">
+			(#{imgInfo.articleNo}, #{imgInfo.saveFolder}, #{imgInfo.originalName}, #{imgInfo.saveName})
+		</foreach>
+	</insert>
+	
+	<!-- 매물 이미지 등록 -->
+	<insert id="uploadForsaleImg" parameterType="java.util.List">
+		insert into imginfo (forsaleNo, saveFolder, originalName, saveName)
+		values
+		<foreach collection="imgInfos" item="imgInfo" separator=", ">
+			(#{imgInfo.forsaleNo}, #{imgInfo.saveFolder}, #{imgInfo.originalName}, #{imgInfo.saveName})
+		</foreach>
+	</insert>
+	
+	<!-- Board - imginfo 얻기 -->
+	<select id="getBoardImgInfo" parameterType="int" resultMap="img">
+		select i.imginfoNo, i.articleNo, i.saveFolder, i.originalName, i.saveName
+		from imginfo i join board b
+		on i.articleNo = b.articleNo
+		where i.articleNo = #{articleNo}
+	</select>
+	
+	<!-- Forsale - imginfo 얻기 -->
+	<select id="getForsaleImgInfo" parameterType="int" resultMap="img">
+		select i.imginfoNo, i.articleNo, i.saveFolder, i.originalName, i.saveName
+		from imginfo i join forsale f
+		on i.forsaleNo = f.forsaleNo
+		where i.forsaleNo = #{forsaleNo}
+	</select>
+	
+	<!-- 이미지 DB에서 삭제 -->
+	<delete id="deleteImg" parameterType="int">
+		delete from imginfo
+		where imginfoNo = #{imginfoNo}
+	</delete>
+	
+</mapper>
